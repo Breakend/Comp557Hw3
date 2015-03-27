@@ -30,16 +30,16 @@ import os, sys
 from SceneParser import SceneParser
 
 
-DEFAULT_SCENE_FILE = './scenes/sphere.xml' 
+DEFAULT_SCENE_FILE = './scenes/sphere.xml'
 
 def build_raytracer():
-    ''' 
+    '''
     For building binary using cython (not used by default). Requires
     C compiler such as msvc/gcc/clang
     '''
     compiler_opt = ''
     python_path_prefix = '' #'C:/Anaconda/' # provide path to python if needed
-    
+
     # cythonize using setup.py
     cmd = python_path_prefix + 'python setup.py build_ext --inplace ' + compiler_opt
     os.system(cmd)
@@ -49,12 +49,12 @@ def main(filename):
     ## to disable showing images in matplotlib uncomment the following line
     #scene.render.bShowImage = False
     scene.renderScene()
-  
-  
+
+
 if __name__ == '__main__':
     argv = sys.argv
     filename = DEFAULT_SCENE_FILE
     if len(argv) == 2:
         filename = argv[1]
-        
+
     main(filename)

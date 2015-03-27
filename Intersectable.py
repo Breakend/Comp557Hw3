@@ -184,6 +184,32 @@ class Plane:
 
     global EPS_DISTANCE  # use this for testing if a variable is close to 0
     # TODO ===== BEGIN SOLUTION HERE =====
+    ln = np.dot(self.normal, ray.viewDirection)
+    pl = np.dot(ray.eyePoint, self.normal)
+
+    if np.fabs(ln) < EPS_DISTANCE:
+      # in both cases, either the plane contains all the points
+      # ad we don't consider it an intersection or runs parallel and never intersects
+      return isect
+
+    t = - pl / ln
+
+    if t < 0 or (np.fabs(pl) < EPS_DISTANCE and t >= 0):
+      return isect
+
+    isect.p = ray.eyePoint + t*ray.viewDirection
+    isect.t = t
+    isect.n = self.normal
+
+    if self.material2 is not None:
+      # checkerboard pattern
+      if ((((isect.p[0] & 0x8) == 0) ^ ((isect.p[1] & 0x8)) == 0)):
+        isect.material = self.material
+      else:
+        isect.material = self.material2
+    else:
+      # 1 material
+      isect.material = self.material
 
     # ===== END SOLUTION HERE =====
     return isect
@@ -235,7 +261,37 @@ class Box:
     tmax = np.inf
     tmin = -np.inf
 
+    # parameters = [self.minPoint, self.maxPoint]
     # TODO ===== BEGIN SOLUTION HERE =====
+
+    # rsign0 = 1 if ray.viewDirection[0] < 0 else 0
+    # rsign1 = 1 if ray.viewDirection[1] < 0 else 0
+    # rsign2 = 1 if ray.viewDirection[2] < 0 else 0
+
+    # tmin = (parameters[rsign0][0] - ray.eyePoint[0]) / ray.viewDirection[0]
+    # tmax = (parameters[1-rsign0][0] - ray.eyePoint[0]) / ray.viewDirection[0]
+
+    # tymin = (parameters[rsign1][1] - ray.eyePoint[1]) / ray.viewDirection[1]
+    # tymax = (parameters[1-rsign1][1] - ray.eyePoint[1]) / ray.viewDirection[1]
+
+    # if (tmin > tymax) or (tymin > tmax):
+    #   return isect
+    # if (tymin > tmin):
+    #   tmin = tymin
+    # if (tymax < tmax):
+    #   tmax = tymax
+
+    # tymin = (parameters[rsign2][2] - ray.eyePoint[2]) / ray.viewDirection[2]
+    # tymax = (parameters[1-rsign2][2] - ray.eyePoint[2]) / ray.viewDirection[2]
+
+    # if (tmin > tzmax) or (tzmin > tmax):
+    #   return isect
+    # if (tzmin > tmin):
+    #   tmin = tzmin
+    # if (tzmax < tmax):
+    #   tmax = tzmax
+
+    # return ( (tmin < t1) && (tmax > t0) )
 
     # ===== END SOLUTION HERE =====
     return isect
