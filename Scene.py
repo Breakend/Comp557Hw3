@@ -67,8 +67,8 @@ class Scene:
       cx = cam.cameraXAxis
       cy = cam.cameraYAxis
       # cw = cam.top/cam.near
-      cw = math.tan(0.5*math.radians(cam.fov))
-      ch = cw/cam.aspect
+      ch = math.tan(0.5*math.radians(cam.fov))
+      cw = ch*cam.aspect
       # cw = math.tan(cam.fov/2.0)/cam.aspect
       # ch = cw*cam.aspect
       ray.viewDirection = GT.normalize(cam.lookat + normalized_i*cw*cx + normalized_j*ch*cy)

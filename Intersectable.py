@@ -201,7 +201,7 @@ class Plane:
     decide which of the two materials to use at the intersection point.
     '''
     isect = IntersectionResult()
-    # This must be wrong
+    # TODO check about antialiasing because stupid dots on the horizon for plane scene
 
     global EPS_DISTANCE  # use this for testing if a variable is close to 0
     # TODO ===== BEGIN SOLUTION HERE =====
@@ -232,9 +232,9 @@ class Plane:
       if y < 0:
         y -= 1
       if (int(x) ^ int(y)) & 1:
-        isect.material = self.material
-      else:
         isect.material = self.material2
+      else:
+        isect.material = self.material
     else:
       # 1 material
       isect.material = self.material
