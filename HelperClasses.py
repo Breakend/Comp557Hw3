@@ -77,13 +77,14 @@ class Render:
   method and the image is saved at the end.
 
   """
-  OUTDIR_REL_PATH = './images/' # relative path to output dir
-  def __init__(self, params = {}):
+  OUTDIR_REL_PATH = './images/'  # relative path to output dir
+
+  def __init__(self, params={}):
       ''' <render bgcolor="0 0 0" output="boxes.png" samples="4" jitter ="true" eyepoints = "1" lensSize = "0.20"> '''
       self.done = False
       self.camera = params.get('camera', Camera())
       self.output = params.get('output', 'render.png')
-      self.bgcolor = np.array(params.get('bgcolor', [0.0,0.0,0.0]))
+      self.bgcolor = np.array(params.get('bgcolor', [0.0, 0.0, 0.0]))
       self.samples = int(params.get('samples', 1))
       self.jitter = True if params.get('jitter', 'false').upper() is 'TRUE' else False
       self.eyepoints = int(params.get('eyepoints', 1))
@@ -91,22 +92,22 @@ class Render:
       self.bShowImage = True if params.get('show_image', 'true').upper() == 'TRUE' else False
       self.OUTDIR_REL_PATH = params.get('out_dir_rel_path', self.OUTDIR_REL_PATH)
 
-      #print(params)
-      #print(self.camera, self.output, self.bgcolor, self.samples, self.jitter, self.eyepoints, self.lensSize)
+      # print(params)
+      # print(self.camera, self.output, self.bgcolor, self.samples, self.jitter, self.eyepoints, self.lensSize)
       # create image output directory if it doesn't exist
       if not os.path.exists(self.OUTDIR_REL_PATH):
         os.makedirs(self.OUTDIR_REL_PATH)
 
   def init(self, width, height):
-    self.image = Image.new("RGB",(width, height) ,"black")
+    self.image = Image.new("RGB", (width, height), "black")
 
   def setPixel(self, pixel, color):
     """
     Set the pixel to the value. Here color is considered to be floating-point
     """
-    #assert(np.all(color <= 1.0) and np.all(0. <= color))
+    # assert(np.all(color <= 1.0) and np.all(0. <= color))
     ''' PIL's putpixel requires the 2nd argument to be a tuple of unsigned 8 bit integers'''
-    #self.image.putpixel(pixel, tuple(np.uint32(color * 255)))
+    # self.image.putpixel(pixel, tuple(np.uint32(color * 255)))
     if type(color) is not np.ndarray: # this shouldn't happen if everything is done correctly
         print(pixel, color)
     self.image.putpixel(pixel, (int(color[0] * 255), int(color[1] * 255), int(color[2] * 255)))
@@ -138,8 +139,7 @@ class Render:
             plt.title('Finished rendering.\nImage stored in ' + self.OUTDIR_REL_PATH + self.output)
             plt.show()
     except:
-        print('Unable to display image using matplotlib...check ' + \
-                self.OUTDIR_REL_PATH + self.output + ' for result.')
+        print('Unable to display image using matplotlib...check ' + self.OUTDIR_REL_PATH + self.output + ' for result.')
 
 
 class Material:
@@ -153,17 +153,18 @@ class Material:
   Could be extended to allow texture map.
 
   """
-  def __init__(self, params = {}):
+  def __init__(self, params={}):
       self.name = params.get('name')
       self.diffuse = np.array(params.get('diffuse', [1.0, 0.0, 0.0]))
       self.specular = np.array(params.get('specular', [0.5, 0.5, 0.5]))
 
       if params.has_key('ambient'):
           self.ambient = np.array(params['ambient'])
-      else: # if no ambient component is specified in the xml then use the diffuse component as default ambient value
+      else:  # if no ambient component is specified in the xml then use the diffuse component as default ambient value
           self.ambient = self.diffuse
 
       self.hardness = float(params.get('hardness', 50.))
+
 
 class Light:
   """
@@ -174,10 +175,9 @@ class Light:
   list of lights, and each of them contribute to the shading of all pixels.
 
   """
-  def __init__(self, params = {}):
+  def __init__(self, params={}):
       self.name = params.get('name')
       self.color = np.array(params.get('color', [1.0, 1.0, 1.0]))
       self.pointFrom = np.array(params.get('from', [0.0, 5.0, 5.0]))
       self.power = float(params.get('power', 1.))
       self.type = params.get('type', 'point')
-

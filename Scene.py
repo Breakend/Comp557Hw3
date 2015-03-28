@@ -60,21 +60,24 @@ class Scene:
       '''
       cam = self.render.camera  # use a local variable to save some typing
       ray.eyePoint = cam.pointFrom  # origin of the ray
-
+      # Fairly certain this is right...
       # TODO ====== BEGIN SOLUTION ======
-# TODO: check if these match this equation
-# http://www.cdf.toronto.edu/~moore/csc418/Notes/BasicRayTracing.pdf
-      normalized_i = (float(col) / cam.imageWidth) - 0.5
-      normalized_j = (float(row) / cam.imageHeight) - 0.5
-      # image_point = normalized_row * cam.right + normalized_col * cam.up + cam.pointFrom + cam.lookat
+      normalized_i = 2.0*((float(col) / cam.imageWidth) - 0.5)
+      normalized_j = 2.0*(0.5 - (float(row) / cam.imageHeight))
       cx = cam.cameraXAxis
       cy = cam.cameraYAxis
-      cw = cam.top/cam.near
+      # cw = cam.top/cam.near
+      cw = math.tan(0.5*math.radians(cam.fov))
       ch = cw/cam.aspect
+      # cw = math.tan(cam.fov/2.0)/cam.aspect
+      # ch = cw*cam.aspect
       ray.viewDirection = GT.normalize(cam.lookat + normalized_i*cw*cx + normalized_j*ch*cy)
 
       # ===== END SOLUTION =====
       return ray
+
+  def saturate(self, x):
+    return np.maximum([0.0, 0.0, 0.0], np.minimum([1.0, 1.0, 1.0], x))
 
 # ----- Implement blinn_phong_shading
   def blinn_phong_shading_per_light(self, viewer_direction, light, isect):
@@ -86,12 +89,16 @@ class Scene:
       isect: is of type IntersectionResult that contains the intersection point,
              normal and material.
       '''
-
       # Compute the color only for this instance. The caller is responsible for
       # mixing colors for different lights.
       color = np.array([0., 0., 0.])
-      # TODO ====== BEGIN SOLUTION =====
 
+      # TODO ====== BEGIN SOLUTION =====
+      lightDir = GT.normalize(light.pointFrom - isect.p)
+      halfway = GT.normalize(lightDir + viewer_direction)
+      specular = (self.saturate(np.dot(isect.n, halfway))**isect.material.hardness) * isect.material.specular
+      diffuse = self.saturate(np.dot(isect.n, lightDir)) * isect.material.diffuse
+      color = (diffuse + specular) * light.power * light.color
       # ===== END SOLUTION HERE =====
       return color
 
@@ -112,13 +119,12 @@ class Scene:
       # Note that by default nearest_intersection.t = inf which corresponds to no intersection
       nearest_intersection = IntersectionResult()
       temp = IntersectionResult()
-      nearest_s = None
+
       # TODO ======= BEGIN SOLUTION =========
       for s in self.surfaces:
         temp = s.intersect(ray)
         if temp.t < nearest_intersection.t:
           nearest_intersection = temp
-          nearest_s = s
 
       # ======= END SOLUTION ========
       # at this point nearest_intersection should contain
@@ -141,7 +147,16 @@ class Scene:
 
       # you need to loop over the lights and return those that are visible from the position in result
       visibleLights = []
+
       # TODO ====== BEGIN SOLUTION =====
+      for l in self.lights:
+        ray = Ray()
+        ray.eyePoint = isect.p
+        ray.viewDirection = GT.normalize(l.pointFrom - isect.p)
+        nearest_isect = self.get_nearest_object_intersection(ray)
+        if nearest_isect.t == np.inf:
+          # no intersection, visible
+          visibleLights.append(l)
 
       # ===== END SOLUTION HERE =====
       return visibleLights

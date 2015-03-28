@@ -25,21 +25,23 @@ Scene file requirements:
 + <render> tag provides the parameters for Render class
 + <camera> tag goes inside <render> and contains the Camera class parameters
 + Intersectable objects have tags <sphere>, <plane>, <box>, <node>
-+ A node (SceneNode) can refer to another node by name using "ref=" E.g. 
++ A node (SceneNode) can refer to another node by name using "ref=" E.g.
 <node name="base">...</node>
 <node name="ref_example" ref="base"></node>
 + SceneParser process each XML element and generates a dictionary containing
 all the parameters of a relevant class. The class's __init__ method takes
-the dictionary and does all the necessary processing. 
+the dictionary and does all the necessary processing.
 + Adding new attribute to an element:
 This can be done by simply adding the attribute to the xml file and retrieving
 that attribute from the parameter dictionary in the corresponding classes
 __init__ file.
 '''
+
+
 class SceneParser:
-    ''' 
-    Parses an XML file and create a Scene class. The default value of a 
-    particular variable will go into the class that uses that variable. 
+    '''
+    Parses an XML file and create a Scene class. The default value of a
+    particular variable will go into the class that uses that variable.
     This class is implemented so that it doesn't have to know a lot about
     the individual nodes in the scene. For instance light may have some special
     variables that only the Light class knows how to process. In that case
@@ -68,40 +70,40 @@ class SceneParser:
                    'min': np.ndarray, 'max' : np.ndarray,
                    'normal': np.ndarray, 'coeffs': np.ndarray,
                    }
-            
+
     def __init__(self, filename):
         print('Parsing ' + filename)
-        self.Materials = dict() # used for storing ref to materials
-        self.Nodes = dict()     # used for storing ref to nodes
+        self.Materials = dict()  # used for storing ref to materials
+        self.Nodes = dict()      # used for storing ref to nodes
         self.NodeStack = []
         self.scene = Scene()
         xml = minidom.parse(filename)
         self.parse(xml)
         print('parsing done.')
-        
+
     def method_dispatcher(self, method_name, arg):
-        if(hasattr(self, method_name)):    
+        if(hasattr(self, method_name)):
             handler = getattr(self, method_name)
             return handler(arg)
         else:
             print('WARNING: %s METHOD NOT FOUND' % method_name)
-            
+
     def parse(self, node):
         method_name = 'parse_' + node.__class__.__name__
         return self.method_dispatcher(method_name, node)
-        
+
     def parse_Document(self, node):
         self.parse(node.documentElement)
-    
+
     def parse_Element(self, node):
         return self.method_dispatcher('process_' + node.tagName, node)
-    
+
     def parse_Text(self, node):
         pass  # ignore Text node
-    
+
     def parse_Comment(self, node):
         pass # ignore Comment node
-    
+
     def convert_attribute_value(self, value, var_type):
         if var_type is float:
             return float(value)
@@ -110,16 +112,16 @@ class SceneParser:
         elif var_type is np.ndarray:
             return np.array(map(float, str(value).split()))
         else: # return as string
-            return value 
-            
+            return value
+
     def create_params(self, attribs):
         params = dict()
         for key in attribs.keys():
             var_type = self.__var_datatypes.get(key, str)
             params[key] = self.convert_attribute_value(attribs[key].value, var_type)
         return params
-    
-    def create_params_from_child(self, node, params):    
+
+    def create_params_from_child(self, node, params):
         for e in node.childNodes:
             val = self.parse(e)
             if val is not None:
@@ -129,27 +131,27 @@ class SceneParser:
                     if type(params[key]) is list:
                         print('appending')
                         params[key].append(val)
-                    else: #if the key already exists but is not a list
+                    else:  # if the key already exists but is not a list
                         print('creating list and appending')
                         cval = params[key]
                         params[key] = [cval, val]
-                else:        
+                else:
                     params[key] = val
         return params
-    
+
     def process_scene(self, node):
         params = self.create_params(node.attributes)
         self.scene.set_params(params)
-        #self.NodeStack.append(SceneNode()) # root scene node
-        
+        # self.NodeStack.append(SceneNode()) # root scene node
+
         for e in node.childNodes:
             self.parse(e)
-        #self.scene.surfaces.append(self.NodeStack.pop())
-        
+        # self.scene.surfaces.append(self.NodeStack.pop())
+
     def process_light(self, node):
         ''' <light name="myLight" color="1 1 1" from="0 0 0 " power="1.0" type="point" /> '''
         self.scene.lights.append(Light(self.create_params(node.attributes)))
-        
+
     def process_material(self, node):
         '''<material name="blue" diffuse="0 0 1" specular="0 0 0" hardness="0" />'''
         params = self.create_params(node.attributes)
@@ -162,33 +164,33 @@ class SceneParser:
             material = Material(params)
             self.Materials[params.get('name')] = material
             return material
-    
+
     def process_material2(self, node):
         return self.process_material(node)
-        
+
     def process_node(self, node):
         '''Nodes can refer to other nodes '''
         print('start process_node')
-        #self.scene.start_node()
+        # self.scene.start_node()
         params = self.create_params(node.attributes)
-        #TODO: remove this comment block (currently kept for reference)
+        # TODO: remove this comment block (currently kept for reference)
 #        print(params)
 #        rot_angles = np.array(params.get('rotation', [0., 0., 0.]))
 #        translate_amount = np.array(params.get('translation', [0., 0., 0.]))
 #        scale_amount = np.array(params.get('scale', [1., 1., 1.]))
-#        
-#        '''The raytracer SceneNode takes care of the hierarchical transformation''' 
+#
+#        '''The raytracer SceneNode takes care of the hierarchical transformation'''
 #        M = GT.translate(translate_amount) *  GT.rotateX(rot_angles[0]) * \
 #            GT.rotateY(rot_angles[1]) * GT.rotateZ(rot_angles[2]) * \
 #            GT.scale(scale_amount)
 #        print M.getA()
         ''' push the current node before further processing '''
-        self.NodeStack.append(SceneNode(params = params))
+        self.NodeStack.append(SceneNode(params=params))
         if params.has_key('ref'):
             if not self.Nodes.has_key(params['ref']):
                 print('WARNING: Ref ' + params['ref'] + ' not found.')
-            else: 
-                '''handle ref to other nodes. What happens to the root 
+            else:
+                '''handle ref to other nodes. What happens to the root
                 transformation of the ref node? The orig transformation gets
                 overridden'''
                 print('Found ref node : ' + params['ref'])
@@ -203,7 +205,7 @@ class SceneParser:
         else: # for non ref nodes do the usual processing
             for e in node.childNodes:
                 self.parse(e)
-            
+
         topNode = self.NodeStack.pop()
         if len(self.NodeStack) == 0:
             print('adding node to scene')
@@ -216,16 +218,16 @@ class SceneParser:
         if nodeName is not None:
             self.Nodes[nodeName] = topNode
         print('end process_node')
-     
+
     def process_render(self, node):
         params = self.create_params(node.attributes)
         params = self.create_params_from_child(node, params)
-        self.scene.render = Render(params)        
-        
+        self.scene.render = Render(params)
+
     def process_camera(self, node):
         camera = Camera(self.create_params(node.attributes))
         return camera
-   
+
     def create_geom_object(self, node, ObjClass):
         params = self.create_params(node.attributes)
         params = self.create_params_from_child(node, params)
@@ -238,16 +240,16 @@ class SceneParser:
         else:
             self.NodeStack[-1].children.append(geom_obj)
         return geom_obj
-        
+
     def process_sphere(self, node):
         return self.create_geom_object(node, Sphere)
-    
+
     def process_box(self, node):
         return self.create_geom_object(node, Box)
-        
+
     def process_plane(self, node):
         return self.create_geom_object(node, Plane)
-        
+
 if __name__ == '__main__':
     SceneParser('./scenes/plane4.xml').scene.renderScene()
-    
+

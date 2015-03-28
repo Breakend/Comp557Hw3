@@ -46,6 +46,7 @@ class IntersectionResult:
 
   """
   ZeroVec3 = np.array([0.0, 0.0, 0.0])
+
   def __init__(self):
     self.n = self.ZeroVec3
     self.p = self.ZeroVec3

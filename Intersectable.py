@@ -74,54 +74,74 @@ class Sphere:
       # E = D^2 - r^2
       # t = (- 2D*v +/- sqrt(2Dv^2 - 4v^2(E)))/2(v^2)
 
+      dir_vec = ray.viewDirection
+      p = ray.eyePoint
+      c2 = np.dot(dir_vec, dir_vec)
+      c1 = 2 * np.dot(dir_vec, p-self.center)
+      c0 = np.dot(p-self.center, p-self.center) - (self.radius**2)
+      delta = c1*c1 - 4*c2*c0
+      if delta < -EPS_DISTANCE:
+        return isect
+
+      delta = np.fabs(delta)
+      x = min((-c1 - math.sqrt(delta)) / (2*c2), (-c1 + math.sqrt(delta)) / (2*c2))
+      if (x < EPS_DISTANCE):
+        # if (x > 0):
+        return isect
+      else:
+        isect.t = x
+        isect.material = self.material
+        isect.p = ray.eyePoint + x * ray.viewDirection
+        isect.n = GT.normalize(isect.p - self.center)
+
       # While at first was doing full quadratic solving. This was more computationally heavy
       # And thus am using http://www.lighthouse3d.com/tutorials/maths/ray-sphere-intersection/
       # as a base for this
 
-      vec_pc = self.center - ray.eyePoint
-      norm_vecpc = np.linalg.norm(vec_pc)
-      # Projection of center of sphere onto the rays
-      u = self.center - ray.eyePoint
-      puv = ray.viewDirection * (np.dot(ray.viewDirection, u) / np.linalg.norm(ray.viewDirection))
-      projected_point = ray.eyePoint + puv
+      # vec_pc = self.center - ray.eyePoint
+      # norm_vecpc = np.linalg.norm(vec_pc)
+      # # Projection of center of sphere onto the rays
+      # u = self.center - ray.eyePoint
+      # puv = GT.normalize(ray.viewDirection) * np.dot(ray.viewDirection, u)
+      # projected_point = ray.eyePoint + puv
 
-      if np.dot(vec_pc, ray.viewDirection) < 0:
-        # Sphere behind origin
-        if norm_vecpc > self.radius:
-          # No intersection
-          return isect
-        elif np.fabs(norm_vecpc - self.radius) < EPS_DISTANCE:
-          # CASE 2: sits on surface
-          # technically intersection = ray.eyePoint but said to ignore in spec
-          return isect
-        else:
-          # Inside the sphere for real
-          dist = np.sqrt(self.radius**2 - np.linalg.norm(projected_point - self.center)**2)
-          dil = dist - np.linalg.norm(projected_point - ray.eyePoint)
-          isect.p = ray.eyePoint + ray.viewDirection * dil
-          isect.t = dil
-          isect.material = self.material
-          isect.n = GT.normalize(isect.p - self.center)
-          return isect
-      else:
-        # Outside of sphere
-        if np.linalg.norm(self.center - projected_point) > self.radius:
-          # no intersection
-          return isect
-        else:
-          dist = np.sqrt(self.radius**2 - np.linalg.norm(projected_point - self.center)**2)
-          if norm_vecpc > self.radius:
-            # origin is outside sphere
-            di1 = np.linalg.norm(projected_point - ray.eyePoint) - dist
-          else:
-            # origin is inside sphere
-            di1 = np.linalg.norm(projected_point - ray.eyePoint) + dist
+      # if np.dot(vec_pc, ray.viewDirection) < 0:
+      #   # Sphere behind origin
+      #   if norm_vecpc > self.radius:
+      #     # No intersection
+      #     return isect
+      #   elif np.fabs(norm_vecpc - self.radius) < EPS_DISTANCE:
+      #     # CASE 2: sits on surface
+      #     # technically intersection = ray.eyePoint but said to ignore in spec
+      #     return isect
+      #   else:
+      #     # Inside the sphere for real
+      #     dist = np.sqrt(self.radius**2 - np.linalg.norm(projected_point - self.center)**2)
+      #     dil = dist - np.linalg.norm(projected_point - ray.eyePoint)
+      #     isect.p = ray.eyePoint + ray.viewDirection * dil
+      #     isect.t = dil
+      #     isect.material = self.material
+      #     isect.n = GT.normalize(isect.p - self.center)
+      #     return isect
+      # else:
+      #   # Outside of sphere
+      #   if np.linalg.norm(self.center - projected_point) > self.radius:
+      #     # no intersection
+      #     return isect
+      #   else:
+      #     dist = np.sqrt(self.radius**2 - np.linalg.norm(projected_point - self.center)**2)
+      #     if norm_vecpc > self.radius:
+      #       # origin is outside sphere
+      #       di1 = np.linalg.norm(projected_point - ray.eyePoint) - dist
+      #     else:
+      #       # origin is inside sphere
+      #       di1 = np.linalg.norm(projected_point - ray.eyePoint) + dist
 
-          isect.p = ray.eyePoint + ray.viewDirection * di1
-          isect.material = self.material
-          isect.t = di1
-          isect.n = GT.normalize(isect.p - self.center)
-          return isect
+      #     isect.p = ray.eyePoint + ray.viewDirection * di1
+      #     isect.material = self.material
+      #     isect.t = di1
+      #     isect.n = GT.normalize(isect.p - self.center)
+      #     return isect
       # ===== END SOLUTION HERE =====
       return isect
 
@@ -181,11 +201,12 @@ class Plane:
     decide which of the two materials to use at the intersection point.
     '''
     isect = IntersectionResult()
+    # This must be wrong
 
     global EPS_DISTANCE  # use this for testing if a variable is close to 0
     # TODO ===== BEGIN SOLUTION HERE =====
     ln = np.dot(self.normal, ray.viewDirection)
-    pl = np.dot(ray.eyePoint, self.normal)
+    pl = np.dot(self.normal, ray.eyePoint)
 
     if np.fabs(ln) < EPS_DISTANCE:
       # in both cases, either the plane contains all the points
@@ -194,16 +215,23 @@ class Plane:
 
     t = - pl / ln
 
-    if t < 0 or (np.fabs(pl) < EPS_DISTANCE and t >= 0):
+    if t < 0 or (np.fabs(pl) < EPS_DISTANCE):
       return isect
 
     isect.p = ray.eyePoint + t*ray.viewDirection
     isect.t = t
+    # TODO: i have a feeling this ain't right?
     isect.n = self.normal
 
     if self.material2 is not None:
       # checkerboard pattern
-      if ((((isect.p[0] & 0x8) == 0) ^ ((isect.p[1] & 0x8)) == 0)):
+      x = isect.p[0]
+      y = isect.p[2]
+      if x < 0:
+        x -= 1
+      if y < 0:
+        y -= 1
+      if (int(x) ^ int(y)) & 1:
         isect.material = self.material
       else:
         isect.material = self.material2
@@ -338,6 +366,7 @@ class SceneNode:
 
     global EPS_DISTANCE  # use this for testing if a variable is close to 0
     # TODO ===== BEGIN SOLUTION HERE =====
+    # TODO: LOOK IN SCENE PARSER
 
     # ===== END SOLUTION HERE =====
     return isect
