@@ -286,40 +286,59 @@ class Box:
     # plane intersections. The ray will pass through at least a set of parallel
     # planes. tmin is the last intersection of the first planes of each set,and
     # tmax is the first intersection of the last planes of each set.
-    tmax = np.inf
-    tmin = -np.inf
+    t_max = np.inf
+    t_min = -np.inf
 
     # parameters = [self.minPoint, self.maxPoint]
     # TODO ===== BEGIN SOLUTION HERE =====
+    t_min_index = t_max_index = 0
 
-    # rsign0 = 1 if ray.viewDirection[0] < 0 else 0
-    # rsign1 = 1 if ray.viewDirection[1] < 0 else 0
-    # rsign2 = 1 if ray.viewDirection[2] < 0 else 0
+    if (ray.eyePoint <= self.maxPoint).all() and (ray.eyePoint >= self.minPoint).all():
+      return isect  # ray starts on the box and there for cannot interesect
 
-    # tmin = (parameters[rsign0][0] - ray.eyePoint[0]) / ray.viewDirection[0]
-    # tmax = (parameters[1-rsign0][0] - ray.eyePoint[0]) / ray.viewDirection[0]
+    pos_normals = [np.array([1, 0, 0]), np.array([0, 1, 0]), np.array([0, 0, 1])]
+    for i in range(0, 3):
+      if (np.fabs(ray.viewDirection[i]) == 0 and (ray.eyePoint[i] < self.minPoint[i] or ray.eyePoint[i] > self.maxPoint[i])):
+        return isect
+      t1 = -np.inf
+      t2 = np.inf
+      ln = np.dot(pos_normals[i], ray.viewDirection)
+      pl = np.dot(pos_normals[i], ray.eyePoint - self.maxPoint*pos_normals[i])
+      if np.fabs(ln) >= EPS_DISTANCE and (np.fabs(pl) >= EPS_DISTANCE):
+        t1 = - pl / ln
+        # t1 -= self.maxPoint[i]
+      ln = np.dot(-pos_normals[i], ray.viewDirection)
+      pl = np.dot(-pos_normals[i], ray.eyePoint - self.minPoint*pos_normals[i])
+      if np.fabs(ln) >= EPS_DISTANCE and (np.fabs(pl) >= EPS_DISTANCE):
+        t2 = - pl / ln
+        # t2 += self.minPoint[i]
+      if t1 > t2:
+        temp = t1
+        t1 = t2
+        t2 = temp
+      if (t1 > t_min):
+        t_min = t1
+        t_min_index = i
+      if (t2 < t_max):
+        t_max = t2
+        t_max_index = i
+      if t_min > t_max or t_max < 0:
+        return isect
 
-    # tymin = (parameters[rsign1][1] - ray.eyePoint[1]) / ray.viewDirection[1]
-    # tymax = (parameters[1-rsign1][1] - ray.eyePoint[1]) / ray.viewDirection[1]
+    if (t_min < 0 or np.fabs(t_min) < EPS_DISTANCE):
+      if t_max == np.inf or (t_max < 0 or np.fabs(t_max) < EPS_DISTANCE):
+        return isect
+      isect.t = t_max
+      isect.n = pos_normals[t_max_index]
+    else:
+      isect.t = t_min
+      isect.n = pos_normals[t_min_index]
 
-    # if (tmin > tymax) or (tymin > tmax):
-    #   return isect
-    # if (tymin > tmin):
-    #   tmin = tymin
-    # if (tymax < tmax):
-    #   tmax = tymax
+    isect.material = self.material
+    if np.dot(isect.n, ray.viewDirection) > 0:
+      isect.n = -isect.n
 
-    # tymin = (parameters[rsign2][2] - ray.eyePoint[2]) / ray.viewDirection[2]
-    # tymax = (parameters[1-rsign2][2] - ray.eyePoint[2]) / ray.viewDirection[2]
-
-    # if (tmin > tzmax) or (tzmin > tmax):
-    #   return isect
-    # if (tzmin > tmin):
-    #   tmin = tzmin
-    # if (tzmax < tmax):
-    #   tmax = tzmax
-
-    # return ( (tmin < t1) && (tmax > t0) )
+    isect.p = ray.eyePoint + ray.viewDirection*isect.t
 
     # ===== END SOLUTION HERE =====
     return isect
@@ -363,10 +382,27 @@ class SceneNode:
     nearest intersection point and all its properties.
     '''
     isect = IntersectionResult()
-
+    # import pdb;pdb.set_trace()
+    ray.viewDirection = np.dot(ray.viewDirection, self.Minv)
+    ray.eyePoint = GT.normalize(np.dot(ray.eyePoint, [0], self.Minv))
+    ray.eyePoint = ray.eyePoint[:3]
+    ray.viewDirection = ray.viewDirection[:3]
+    # Check
+    # https://github.com/jianhe25/Tiny-ray-tracer/blob/master/hw3-RayTracer/RayTracer.cpp
     global EPS_DISTANCE  # use this for testing if a variable is close to 0
     # TODO ===== BEGIN SOLUTION HERE =====
-    # TODO: LOOK IN SCENE PARSER
+    intersections = []
+    for child in self.children:
+      intersect = (child.intersect(ray))
+      intersect.p = np.dot(np.append(intersect.p, [0]), self.M)[:3]
+      intersect.n = np.dot(np.append(intersect.n, [0]), self.M)[:3]
 
+    min_isect = isect
+
+    for s in intersections:
+      if s.t > 0 and s.t < isect:
+        min_isect = s
+
+    isect = min_isect
     # ===== END SOLUTION HERE =====
     return isect
