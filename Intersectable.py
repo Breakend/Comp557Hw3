@@ -383,24 +383,28 @@ class SceneNode:
     '''
     isect = IntersectionResult()
     # import pdb;pdb.set_trace()
-    ray.viewDirection = np.dot(ray.viewDirection, self.Minv)
-    ray.eyePoint = GT.normalize(np.dot(ray.eyePoint, [0], self.Minv))
-    ray.eyePoint = ray.eyePoint[:3]
-    ray.viewDirection = ray.viewDirection[:3]
+    transformedRay = Ray()
+    transformedRay.viewDirection = np.dot(np.append(ray.viewDirection, [0]), self.Minv)
+    transformedRay.eyePoint = np.dot(np.append(ray.eyePoint, [1]), self.Minv)
+    transformedRay.eyePoint = transformedRay.eyePoint[:3] / transformedRay.eyePoint[3]
+    transformedRay.viewDirection = transformedRay.viewDirection[:3]
     # Check
     # https://github.com/jianhe25/Tiny-ray-tracer/blob/master/hw3-RayTracer/RayTracer.cpp
     global EPS_DISTANCE  # use this for testing if a variable is close to 0
     # TODO ===== BEGIN SOLUTION HERE =====
     intersections = []
     for child in self.children:
-      intersect = (child.intersect(ray))
-      intersect.p = np.dot(np.append(intersect.p, [0]), self.M)[:3]
-      intersect.n = np.dot(np.append(intersect.n, [0]), self.M)[:3]
+      intersection = child.intersect(transformedRay)
+      # intersection.p = transformedRay.eyePoint + transformedRay.viewDirection * intersection.t
+      intersection.p = np.dot(self.M, np.append(intersection.p, [1]))
+      intersection.p = intersection.p[:3]/intersection.p[3]
+      intersection.n = GT.normalize(np.dot(self.M, np.append(intersection.n, [0]))[:3])
+      intersections.append(intersection)
 
     min_isect = isect
 
     for s in intersections:
-      if s.t > 0 and s.t < isect:
+      if s.t > 0 and (s.t < min_isect or min_isect.t == np.inf):
         min_isect = s
 
     isect = min_isect

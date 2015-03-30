@@ -1,4 +1,6 @@
+*.pyc
 images/
 images_sol/
 images_test_render/
 diffs/
+
