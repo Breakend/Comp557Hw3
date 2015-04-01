@@ -325,7 +325,7 @@ class Box:
       # if np.fabs(ln) >= EPS_DISTANCE and (np.fabs(pl) >= EPS_DISTANCE):
       #   t2 = - pl / ln
       temp_r = False
-      if np.fabs(ray.viewDirection[i]) < EPS_DISTANCE:
+      if np.fabs(ray.viewDirection[i]) == 0.0:
         continue
       t2 = (self.minPoint[i] - ray.eyePoint[i])/ray.viewDirection[i]
       t1 = (self.maxPoint[i] - ray.eyePoint[i])/ray.viewDirection[i]
@@ -344,7 +344,7 @@ class Box:
         t_max = t2
         t_max_using_reverse = temp_r
         t_max_index = i
-      if t_min > t_max or t_max < 0:
+      if t_min > t_max or t_max < EPS_DISTANCE:
         return isect
 
     if (t_min < EPS_DISTANCE):
@@ -428,8 +428,8 @@ class SceneNode:
       # intersection.p = ray.eyePoint + ray.viewDirection * intersection.t
       intersection.p = np.dot(self.M, np.append(intersection.p, [1]))
       intersection.p = intersection.p[:3]/intersection.p[3]
-      # intersection.t = np.linalg.norm(intersection.p - ray.eyePoint)
-      intersection.n = np.dot(self.M, np.append(intersection.n, [0]))[:3]
+      intersection.t = np.linalg.norm(intersection.p - ray.eyePoint)
+      intersection.n = np.dot(np.transpose(self.Minv), np.append(intersection.n, [0]))[:3]
       # intersection.n = intersection.n[:3]/intersection.n[3]
       intersection.n = GT.normalize(intersection.n)
 
