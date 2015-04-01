@@ -60,17 +60,17 @@ class Scene:
       '''
       cam = self.render.camera  # use a local variable to save some typing
       ray.eyePoint = cam.pointFrom  # origin of the ray
-      # Fairly certain this is right...
+
       # TODO ====== BEGIN SOLUTION ======
       normalized_i = 2.0*((float(col) / cam.imageWidth) - 0.5)
       normalized_j = 2.0*(0.5 - (float(row) / cam.imageHeight))
+
+      # if((float(row) / cam.imageHeight) == .5):
+      #   normalized_j = -1e-12
       cx = cam.cameraXAxis
       cy = cam.cameraYAxis
-      # cw = cam.top/cam.near
-      ch = math.tan(0.5*math.radians(cam.fov))
+      ch = cam.top/cam.near
       cw = ch*cam.aspect
-      # cw = math.tan(cam.fov/2.0)/cam.aspect
-      # ch = cw*cam.aspect
       ray.viewDirection = GT.normalize(cam.lookat + normalized_i*cw*cx + normalized_j*ch*cy)
 
       # ===== END SOLUTION =====
