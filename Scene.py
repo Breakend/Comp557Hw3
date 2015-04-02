@@ -62,16 +62,18 @@ class Scene:
       ray.eyePoint = cam.pointFrom  # origin of the ray
 
       # TODO ====== BEGIN SOLUTION ======
-      normalized_i = 2.0*((float(col) / cam.imageWidth) - 0.5)
-      normalized_j = 2.0*(0.5 - (float(row) / cam.imageHeight))
-
+      # normalized_i = 2.0*((float(col) / cam.imageWidth) - 0.5)
+      # normalized_j = 2.0*(0.5 - (float(row) / (cam.imageHeight)))
+      normalized_x = (2.0*float(col))/(cam.imageWidth) - 1.0
+      normalized_y = 1.0 - (2.0*float(row))/(cam.imageHeight)
       # if((float(row) / cam.imageHeight) == .5):
       #   normalized_j = -1e-12
-      cx = cam.cameraXAxis
-      cy = cam.cameraYAxis
-      ch = cam.top/cam.near
-      cw = ch*cam.aspect
-      ray.viewDirection = GT.normalize(cam.lookat + normalized_i*cw*cx + normalized_j*ch*cy)
+      ch = math.tan(0.5*math.radians(cam.fov))
+      cw = ch * cam.aspect
+      cx = cam.cameraXAxis * cw
+      cy = cam.cameraYAxis * ch
+
+      ray.viewDirection = GT.normalize((cam.lookat + normalized_x*cx + normalized_y*cy))
 
       # ===== END SOLUTION =====
       return ray
@@ -154,7 +156,7 @@ class Scene:
         ray.eyePoint = isect.p
         ray.viewDirection = GT.normalize(l.pointFrom - isect.p)
         nearest_isect = self.get_nearest_object_intersection(ray)
-        if nearest_isect.t == np.inf:
+        if nearest_isect.t == np.inf or nearest_isect.t >= np.linalg.norm(l.pointFrom - isect.p):
           # no intersection, visible
           visibleLights.append(l)
 
@@ -182,7 +184,6 @@ class Scene:
         pixel is a list containing the image coordinate of a pixel i.e.
         pixel = [col, row]
         '''
-
         # create a ray from the eye position and goes through the pixel
         ray = self.create_ray(pixel[1], pixel[0])
 

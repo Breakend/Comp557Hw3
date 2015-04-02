@@ -240,10 +240,10 @@ class Plane:
       # checkerboard pattern
       x = isect.p[0]
       z = isect.p[2]
-      if x < 0.0:
-        x -= 1.0
-      if z < 0.0:
-        z -= 1.0
+      if x < 0:
+        x -= 10001.0
+      if z < 0:
+        z -= 10001.0
       if (int(x) ^ int(z)) & 1:
         isect.material = self.material2
       else:
@@ -304,65 +304,38 @@ class Box:
 
     # parameters = [self.minPoint, self.maxPoint]
     # TODO ===== BEGIN SOLUTION HERE =====
-    t_min_index = t_max_index = 0
-    t_min_using_reverse = t_max_using_reverse = temp_r = False
+    t_min_index = 0
+    t_min_using_reverse = temp_r = False
+    normals = [np.array([1, 0, 0]), np.array([0, 1, 0]), np.array([0, 0, 1])]
 
-    if (ray.eyePoint <= self.maxPoint).all() and (ray.eyePoint >= self.minPoint).all():
-      return isect  # ray starts on the box and there for cannot interesect
-
-    pos_normals = [np.array([1, 0, 0]), np.array([0, 1, 0]), np.array([0, 0, 1])]
     for i in range(0, 3):
-      if (np.fabs(ray.viewDirection[i]) == 0 and (ray.eyePoint[i] < self.minPoint[i] or ray.eyePoint[i] > self.maxPoint[i])):
-        return isect
-      # t1 = -np.inf
-      # t2 = np.inf
-      # ln = np.dot(pos_normals[i], ray.viewDirection)
-      # pl = np.dot(pos_normals[i], ray.eyePoint - self.maxPoint*pos_normals[i])
-      # if np.fabs(ln) >= EPS_DISTANCE and (np.fabs(pl) >= EPS_DISTANCE):
-      #   t1 = - pl / ln
-      # ln = np.dot(-pos_normals[i], ray.viewDirection)
-      # pl = np.dot(-pos_normals[i], ray.eyePoint - self.minPoint*pos_normals[i])
-      # if np.fabs(ln) >= EPS_DISTANCE and (np.fabs(pl) >= EPS_DISTANCE):
-      #   t2 = - pl / ln
-      temp_r = False
-      if np.fabs(ray.viewDirection[i]) == 0.0:
+      if ray.viewDirection[i] == 0.0:
         continue
-      t2 = (self.minPoint[i] - ray.eyePoint[i])/ray.viewDirection[i]
-      t1 = (self.maxPoint[i] - ray.eyePoint[i])/ray.viewDirection[i]
-      # if t_min > t2 or t1 > t_max:
-      #   return isect
-      if t1 > t2:
+      temp_r = False
+      t2t = (self.minPoint[i] - ray.eyePoint[i])/ray.viewDirection[i]
+      t1t = (self.maxPoint[i] - ray.eyePoint[i])/ray.viewDirection[i]
+      if(t2t > t1t):
         temp_r = True
-        temp = t1
-        t1 = t2
-        t2 = temp
-      if (t1 > t_min):
-        t_min = t1
-        t_min_using_reverse = temp_r
+      t1 = min(t1t, t2t)
+      t2 = max(t1t, t2t)
+      if t1 > t_min:
         t_min_index = i
-      if (t2 < t_max):
+        t_min_using_reverse = not temp_r
+        t_min = t1
+      if t2 < t_max:
+        # t_max_using_reverse = temp_r
         t_max = t2
-        t_max_using_reverse = temp_r
-        t_max_index = i
-      if t_min > t_max or t_max < EPS_DISTANCE:
-        return isect
 
-    if (t_min < EPS_DISTANCE):
-      if t_max == np.inf or (t_max < EPS_DISTANCE):
-        return isect
-      isect.t = t_max
-      isect.n = pos_normals[t_max_index]
-      if t_max_using_reverse:
-        isect.n *= -1
-    else:
+    # min_with_error = self.minPoint + EPS_DISTANCE
+    # max_with_error = self.maxPoint - EPS_DISTANCE
+
+    if t_min > EPS_DISTANCE and t_min < t_max:
+      isect.p = ray.eyePoint + ray.viewDirection * t_min
       isect.t = t_min
-      isect.n = pos_normals[t_min_index]
+      isect.n = normals[t_min_index]
       if t_min_using_reverse:
         isect.n *= -1
-
-    isect.material = self.material
-
-    isect.p = ray.eyePoint + ray.viewDirection*isect.t
+      isect.material = self.material
 
     # ===== END SOLUTION HERE =====
     return isect
@@ -407,14 +380,14 @@ class SceneNode:
     '''
     isect = IntersectionResult()
     transformedRay = Ray()
-    # ray_tip = ray.eyePoint + ray.viewDirection
+    ray_tip = ray.eyePoint + ray.viewDirection
     # import pdb;pdb.set_trace()
-    transformedRay.viewDirection = GT.normalize(np.dot(self.Minv, np.append(ray.viewDirection, [0]))[:3])
+    # transformedRay.viewDirection = GT.normalize(np.dot(np.transpose(self.M), np.append(ray.viewDirection, [0]))[:3])
     transformedRay.eyePoint = np.dot(self.Minv, np.append(ray.eyePoint, [1]))
     transformedRay.eyePoint = transformedRay.eyePoint[:3] / transformedRay.eyePoint[3]
-    # trans_ray_tip = np.dot(self.Minv, np.append(ray_tip, [1]))
-    # trans_ray_tip = trans_ray_tip[:3] / trans_ray_tip[3]
-    # transformedRay.viewDirection = trans_ray_tip - transformedRay.eyePoint
+    trans_ray_tip = np.dot(self.Minv, np.append(ray_tip, [1]))
+    trans_ray_tip = trans_ray_tip[:3] / trans_ray_tip[3]
+    transformedRay.viewDirection = trans_ray_tip - transformedRay.eyePoint
     # Check
     # https://github.com/jianhe25/Tiny-ray-tracer/blob/master/hw3-RayTracer/RayTracer.cpp
     global EPS_DISTANCE  # use this for testing if a variable is close to 0
@@ -431,7 +404,7 @@ class SceneNode:
       intersection.t = np.linalg.norm(intersection.p - ray.eyePoint)
       intersection.n = np.dot(np.transpose(self.Minv), np.append(intersection.n, [0]))[:3]
       # intersection.n = intersection.n[:3]/intersection.n[3]
-      intersection.n = GT.normalize(intersection.n)
+      # intersection.n = GT.normalize(intersection.n)
 
       intersections.append(intersection)
 
