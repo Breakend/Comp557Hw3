@@ -9,7 +9,8 @@ import fnmatch
 import numpy as np
 from PIL import Image
 
-DEFAULT_IM_DIR1 = './images/'
+DEFAULT_IM_DIR1 = './images_test_render/'
+#DEFAULT_IM_DIR1 = './images/'
 DEFAULT_IM_DIR2 = './images_sol/'
 
 def cmp_images(im1, im2):

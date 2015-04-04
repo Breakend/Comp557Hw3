@@ -229,7 +229,7 @@ class Plane:
 
     t = pl / ln
 
-    if t < -EPS_DISTANCE or (np.fabs(pl) < EPS_DISTANCE):
+    if t < EPS_DISTANCE:
       return isect
 
     isect.p = ray.eyePoint + t*ray.viewDirection
@@ -241,9 +241,18 @@ class Plane:
       x = isect.p[0]
       z = isect.p[2]
       if x < 0:
-        x -= 10001.0
+        x -= EPS_DISTANCE
+        # x -= 1.0
+      else:
+        x += EPS_DISTANCE
       if z < 0:
-        z -= 10001.0
+        z -= EPS_DISTANCE
+        # z -= 1.0
+      else:
+        x += EPS_DISTANCE
+
+      x = math.floor(x)
+      z = math.floor(z)
       if (int(x) ^ int(z)) & 1:
         isect.material = self.material2
       else:
@@ -310,6 +319,8 @@ class Box:
 
     for i in range(0, 3):
       if ray.viewDirection[i] == 0.0:
+        if ray.eyePoint[i] < self.minPoint[i] or ray.eyePoint[i] > self.maxPoint[i]:
+          return isect
         continue
       temp_r = False
       t2t = (self.minPoint[i] - ray.eyePoint[i])/ray.viewDirection[i]
@@ -380,14 +391,14 @@ class SceneNode:
     '''
     isect = IntersectionResult()
     transformedRay = Ray()
-    ray_tip = ray.eyePoint + ray.viewDirection
     # import pdb;pdb.set_trace()
     # transformedRay.viewDirection = GT.normalize(np.dot(np.transpose(self.M), np.append(ray.viewDirection, [0]))[:3])
     transformedRay.eyePoint = np.dot(self.Minv, np.append(ray.eyePoint, [1]))
     transformedRay.eyePoint = transformedRay.eyePoint[:3] / transformedRay.eyePoint[3]
+    ray_tip = ray.eyePoint + ray.viewDirection
     trans_ray_tip = np.dot(self.Minv, np.append(ray_tip, [1]))
     trans_ray_tip = trans_ray_tip[:3] / trans_ray_tip[3]
-    transformedRay.viewDirection = trans_ray_tip - transformedRay.eyePoint
+    transformedRay.viewDirection = GT.normalize(trans_ray_tip - transformedRay.eyePoint)
     # Check
     # https://github.com/jianhe25/Tiny-ray-tracer/blob/master/hw3-RayTracer/RayTracer.cpp
     global EPS_DISTANCE  # use this for testing if a variable is close to 0
@@ -402,7 +413,8 @@ class SceneNode:
       intersection.p = np.dot(self.M, np.append(intersection.p, [1]))
       intersection.p = intersection.p[:3]/intersection.p[3]
       intersection.t = np.linalg.norm(intersection.p - ray.eyePoint)
-      intersection.n = np.dot(np.transpose(self.Minv), np.append(intersection.n, [0]))[:3]
+
+      intersection.n = GT.normalize(np.dot(np.transpose(self.Minv), np.append(intersection.n, [0]))[:3])
       # intersection.n = intersection.n[:3]/intersection.n[3]
       # intersection.n = GT.normalize(intersection.n)
 
