@@ -66,6 +66,7 @@ class Sphere:
       # ELSE IF The ray is on the sphere
       # OTHERWISE it's a normal ray intersection from the outside
 
+      # Derivation of formulas which comes down to quadratic to find distances
       # Pn = (P0 - Pc) + tv
       # D = P0 - Pc
       # Pn^T Pn = r^2
@@ -76,16 +77,16 @@ class Sphere:
 
       dir_vec = ray.viewDirection
       p = ray.eyePoint
-      c2 = np.dot(dir_vec, dir_vec)
-      c1 = 2 * np.dot(dir_vec, p-self.center)
+      v2 = np.dot(dir_vec, dir_vec)
+      Dv = 2 * np.dot(dir_vec, p-self.center)
       c0 = np.dot(p-self.center, p-self.center) - (self.radius**2)
-      delta = c1*c1 - 4*c2*c0
+      delta = Dv*Dv - 4*v2*c0
       if delta < -EPS_DISTANCE:
         return isect
 
       delta = np.fabs(delta)
-      x1 = (-c1 - math.sqrt(delta)) / (2*c2)
-      x2 = (-c1 + math.sqrt(delta)) / (2*c2)
+      x1 = (-Dv - math.sqrt(delta)) / (2*v2)
+      x2 = (-Dv + math.sqrt(delta)) / (2*v2)
       x = min(x1, x2)
       if x < -EPS_DISTANCE:
         if x1 > 0:
@@ -99,63 +100,16 @@ class Sphere:
         if x2 > EPS_DISTANCE:
           x = x2
 
+      # ray casts such as intersection is behind the sphere
       if (x < -EPS_DISTANCE) or np.fabs(x) < EPS_DISTANCE:
-        # if (x > 0):
         return isect
       else:
+        # we have a valid intersection
         isect.t = x
         isect.material = self.material
         isect.p = ray.eyePoint + x * ray.viewDirection
         isect.n = GT.normalize(isect.p - self.center)
 
-      # While at first was doing full quadratic solving. This was more computationally heavy
-      # And thus am using http://www.lighthouse3d.com/tutorials/maths/ray-sphere-intersection/
-      # as a base for this
-
-      # vec_pc = self.center - ray.eyePoint
-      # norm_vecpc = np.linalg.norm(vec_pc)
-      # # Projection of center of sphere onto the rays
-      # u = self.center - ray.eyePoint
-      # puv = GT.normalize(ray.viewDirection) * np.dot(ray.viewDirection, u)
-      # projected_point = ray.eyePoint + puv
-
-      # if np.dot(vec_pc, ray.viewDirection) < 0:
-      #   # Sphere behind origin
-      #   if norm_vecpc > self.radius:
-      #     # No intersection
-      #     return isect
-      #   elif np.fabs(norm_vecpc - self.radius) < EPS_DISTANCE:
-      #     # CASE 2: sits on surface
-      #     # technically intersection = ray.eyePoint but said to ignore in spec
-      #     return isect
-      #   else:
-      #     # Inside the sphere for real
-      #     dist = np.sqrt(self.radius**2 - np.linalg.norm(projected_point - self.center)**2)
-      #     dil = dist - np.linalg.norm(projected_point - ray.eyePoint)
-      #     isect.p = ray.eyePoint + ray.viewDirection * dil
-      #     isect.t = dil
-      #     isect.material = self.material
-      #     isect.n = GT.normalize(isect.p - self.center)
-      #     return isect
-      # else:
-      #   # Outside of sphere
-      #   if np.linalg.norm(self.center - projected_point) > self.radius:
-      #     # no intersection
-      #     return isect
-      #   else:
-      #     dist = np.sqrt(self.radius**2 - np.linalg.norm(projected_point - self.center)**2)
-      #     if norm_vecpc > self.radius:
-      #       # origin is outside sphere
-      #       di1 = np.linalg.norm(projected_point - ray.eyePoint) - dist
-      #     else:
-      #       # origin is inside sphere
-      #       di1 = np.linalg.norm(projected_point - ray.eyePoint) + dist
-
-      #     isect.p = ray.eyePoint + ray.viewDirection * di1
-      #     isect.material = self.material
-      #     isect.t = di1
-      #     isect.n = GT.normalize(isect.p - self.center)
-      #     return isect
       # ===== END SOLUTION HERE =====
       return isect
 
@@ -182,8 +136,6 @@ class Plane:
       else:
           self.material = material_list[0]
           self.material2 = material_list[1]
-      # print(params)
-      # print(self.normal, self.material, self.material2)
 
   def intersect(self, ray):
     '''
@@ -242,12 +194,10 @@ class Plane:
       z = isect.p[2]
       if x < 0:
         x -= EPS_DISTANCE
-        # x -= 1.0
       else:
         x += EPS_DISTANCE
       if z < 0:
         z -= EPS_DISTANCE
-        # z -= 1.0
       else:
         x += EPS_DISTANCE
 
@@ -311,7 +261,6 @@ class Box:
     t_max = np.inf
     t_min = -np.inf
 
-    # parameters = [self.minPoint, self.maxPoint]
     # TODO ===== BEGIN SOLUTION HERE =====
     t_min_index = 0
     t_min_using_reverse = temp_r = False
@@ -334,11 +283,7 @@ class Box:
         t_min_using_reverse = not temp_r
         t_min = t1
       if t2 < t_max:
-        # t_max_using_reverse = temp_r
         t_max = t2
-
-    # min_with_error = self.minPoint + EPS_DISTANCE
-    # max_with_error = self.maxPoint - EPS_DISTANCE
 
     if t_min > EPS_DISTANCE and t_min < t_max:
       isect.p = ray.eyePoint + ray.viewDirection * t_min
@@ -379,7 +324,6 @@ class SceneNode:
         self.M = Tform.getA()
 
     self.Minv = np.linalg.inv(self.M)
-    # print(self.M, self.Minv)
 
   def intersect(self, ray):
     '''
@@ -391,40 +335,41 @@ class SceneNode:
     '''
     isect = IntersectionResult()
     transformedRay = Ray()
-    # import pdb;pdb.set_trace()
-    # transformedRay.viewDirection = GT.normalize(np.dot(np.transpose(self.M), np.append(ray.viewDirection, [0]))[:3])
+    # Eyepoint transformed
     transformedRay.eyePoint = np.dot(self.Minv, np.append(ray.eyePoint, [1]))
     transformedRay.eyePoint = transformedRay.eyePoint[:3] / transformedRay.eyePoint[3]
+    # Ray transformed, since it's a vector not from origin need to do this calc
     ray_tip = ray.eyePoint + ray.viewDirection
     trans_ray_tip = np.dot(self.Minv, np.append(ray_tip, [1]))
     trans_ray_tip = trans_ray_tip[:3] / trans_ray_tip[3]
     transformedRay.viewDirection = GT.normalize(trans_ray_tip - transformedRay.eyePoint)
-    # Check
-    # https://github.com/jianhe25/Tiny-ray-tracer/blob/master/hw3-RayTracer/RayTracer.cpp
+
     global EPS_DISTANCE  # use this for testing if a variable is close to 0
     # TODO ===== BEGIN SOLUTION HERE =====
     intersections = []
+
+    # Get all the intersections
     for child in self.children:
       intersection = child.intersect(transformedRay)
       if intersection.t == np.inf:
         continue
-      # import pdb;pdb.set_trace()
-      # intersection.p = ray.eyePoint + ray.viewDirection * intersection.t
+
+      # Point transformed
       intersection.p = np.dot(self.M, np.append(intersection.p, [1]))
       intersection.p = intersection.p[:3]/intersection.p[3]
+
+      # Distance in world coords
       intersection.t = np.linalg.norm(intersection.p - ray.eyePoint)
 
+      # Normal, inverse transpose because it's a normal to remove scale issues
       intersection.n = GT.normalize(np.dot(np.transpose(self.Minv), np.append(intersection.n, [0]))[:3])
-      # intersection.n = intersection.n[:3]/intersection.n[3]
-      # intersection.n = GT.normalize(intersection.n)
 
       intersections.append(intersection)
 
     min_isect = isect
 
+    # Get the closest intersection
     for iss in intersections:
-      # if iss.material is not None and iss.material.name == "green":
-        # import pdb;pdb.set_trace()
       if (iss.t < min_isect.t):
         min_isect = iss
 

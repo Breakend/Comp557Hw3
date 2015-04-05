@@ -62,13 +62,12 @@ class Scene:
       ray.eyePoint = cam.pointFrom  # origin of the ray
 
       # TODO ====== BEGIN SOLUTION ======
-      # normalized_i = 2.0*((float(col) / cam.imageWidth) - 0.5)
-      # normalized_j = 2.0*(0.5 - (float(row) / (cam.imageHeight)))
+      # Get pixel center positions
       normalized_x = (2.0*float(col))/(cam.imageWidth) - 1.0
       normalized_y = 1.0 - (2.0*float(row))/(cam.imageHeight)
-      # if((float(row) / cam.imageHeight) == .5):
-      #   normalized_j = -1e-12
-      ch = math.tan(0.5*math.radians(cam.fov))
+
+      # Get other factors
+      ch = cam.top / cam.near
       cw = ch * cam.aspect
       cx = cam.cameraXAxis * cw
       cy = cam.cameraYAxis * ch
@@ -156,8 +155,15 @@ class Scene:
         ray.eyePoint = isect.p
         ray.viewDirection = GT.normalize(l.pointFrom - isect.p)
         nearest_isect = self.get_nearest_object_intersection(ray)
+
+        # PLEASE NOTE: while i used to have
+        # np.fabs(nearest_isect.t -  np.linalg.norm(l.pointFrom - isect.p)) <= EPS_DISTANCE
+        # This gave more different results than the solution images, as such
+        # I kept this which gave a closer version to what scene4 gave
+        # As was said in the forums, this shouldn't matter for grading as it only gives
+        # slightly different shading results
         if nearest_isect.t == np.inf or nearest_isect.t >= np.linalg.norm(l.pointFrom - isect.p):
-          # no intersection, visible
+          # no further intersection than to the given point
           visibleLights.append(l)
 
       # ===== END SOLUTION HERE =====
